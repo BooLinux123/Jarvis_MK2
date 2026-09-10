@@ -12,7 +12,7 @@ LIGHT_TOOLS = [
                 "parameters": {
                     "type": "object",
                     "properties": {
-                        "state": {"type": "string", "enum": ["on, off"]}
+                        "state": {"type": "string", "enum": ["on", "off"]}
                     },
                     "required": "state"
                 }
