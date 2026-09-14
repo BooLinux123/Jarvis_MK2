@@ -4,38 +4,36 @@
 
 LIGHT_TOOLS = [
     {
-        {
-            "type": "function",
-            "function": {
-                "name": "toggle_lights",
-                "description": "Turn the lights on or off",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "state": {"type": "string", "enum": ["on", "off"]}
-                    },
-                    "required": "state"
-                }
-            },
+        "type": "function",
+        "function": {
+            "name": "toggle_lights",
+            "description": "Turn the lights on or off",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "state": {"type": "string", "enum": ["on", "off"]}
+                },
+                "required": ["state"]
+            }
         },
-        {
-            "type": "function",
-            "function": {
-                "name": "dim_lights",
-                "description": "Set a light's brightness to either an percentage level or a level by name (max/high/medium/low/off)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "brightness": {
-                            "description": "Brightness can be either a preset name or an exact number",
-                            "oneOf": [
-                                {"type": "string", "enum": ["max", "high", "medium", "low", "off"]},
-                                {"type": "integer", "minimum": 0, "maximum": 100}
-                            ]
-                        }
-                    },
-                    "required": "brightness"
-                }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "dim_lights",
+            "description": "Set a light's brightness to either an percentage level or a level by name (max/high/medium/low/off)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "brightness": {
+                        "description": "Brightness can be either a preset name or an exact number",
+                        "oneOf": [
+                            {"type": "string", "enum": ["max", "high", "medium", "low", "off"]},
+                            {"type": "integer", "minimum": 0, "maximum": 100}
+                        ]
+                    }
+                },
+                "required": ["brightness"]
             }
         }
     }
