@@ -4,15 +4,24 @@ from registry import ALL_TOOLS, DISPATCH_TABLE
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "Jarvis"
 
+conversation_history = []
+
 def chat(user_message):
+    conversation_history.append({"role":"user", "content":user_message})
+
     response = requests.post(OLLAMA_URL, json = {
         "model": MODEL_NAME,
-        "messages": [{"role":"user", "content": user_message}],
+        "messages": conversation_history,
         "tools": ALL_TOOLS,
+        "think": False,
         "stream": False
     })
 
-    return response.json()
+    data = response.json()
+
+    conversation_history.append(data["message"])
+
+    return data
 
 def handle_response(data):
     print("DATA RECEIVED: ", data)
@@ -24,16 +33,24 @@ def handle_response(data):
             args = call["function"]["arguments"]
             function = DISPATCH_TABLE.get(name)
             if function:
-                function(**args)
+                result = function(**args)
+                conversation_history.append({
+                    "role":"tool",
+                    "content": str(result) if result is not None else " done"
+                })
             else:
+                conversation_history.append({
+                    "role": "tool",
+                    "content": f"Error: '{name}' is not a valid tool"
+                })
                 print("The model tried to use an unknown tool: ", name)
     else:
-        print("Jarvis ", message["content"])
+        print("Jarvis:", message["content"])
 
 if __name__ == "__main__":
     while True:
         user_input = input("You: ")
-        if user_input.lower() in ("quit", "exit", "goodbye"):
+        if user_input.lower() in ("quit", "exit", "goodbye", "bye"):
             break
         else:
             data = chat(user_input)
