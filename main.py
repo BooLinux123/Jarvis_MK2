@@ -1,5 +1,5 @@
 import requests
-from registry import ALL_TOOLS, DISPATCH_TABLE
+from tools.registry import ALL_TOOLS, DISPATCH_TABLE
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "Jarvis"
