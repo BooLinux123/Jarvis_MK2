@@ -1,15 +1,48 @@
 """
     This file is for anything related to searching. Search is handled by Tavily's search API.
+"""
 
 import os
 import requests
+from abc import ABC, abstractmethod
+import requests
+"""
 from dotenv import load_dotenv
 from tavily import TavilyClient
-
-
-load_dotenv()
-TAVILY_CLIENT = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 """
+
+# Because this search query is likely the one I will expand upon the most (general info, weather, news, etc.), I want to abstract it so I only have to implement
+# the logic for a search and formatting flow. Every subclass of this class will just serve
+class SearchQuery(ABC):
+    def search(self, query):
+        try: 
+            response = self._execute(query)
+            return self._format(response)
+        except requests.exceptions.Timeout:
+            return "Search request timed out."
+        except requests.exceptions.RequestException as e:
+            return f"Error with requests: {e}"
+    
+    @abstractmethod
+    def _execute(self, query):
+        # To be inherited: each API has a different request body shape so each method needs a different implementation.
+
+    @abstractmethod 
+    def _format(self, response):
+        # To be inherited: each API returns a different JSON shape so each method needs a different implementation.
+
+class TavilyProvider(SearchQuery):
+    def __init__(self, api_key):
+        self.api_key = api_key
+
+    def _execute(self, query):
+        return query
+        # look up how tavily client works with requests
+    
+    def _format(self, response):
+        print("This is your query: ", response)
+
+# -- tools format for Jarvis to look at --
 
 SEARCH_TOOLS = [
     {
@@ -27,6 +60,8 @@ SEARCH_TOOLS = [
         }
     }
 ]
+
+# -- function defs here -- 
 
 def search_for_info(query):
     return "HERE IS YOUR QUERY: " + query
