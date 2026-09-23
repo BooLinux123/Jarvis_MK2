@@ -6,8 +6,8 @@ import os
 import requests
 from abc import ABC, abstractmethod
 import requests
-"""
 from dotenv import load_dotenv
+"""
 from tavily import TavilyClient
 """
 
@@ -26,10 +26,12 @@ class SearchQuery(ABC):
     @abstractmethod
     def _execute(self, query):
         # To be inherited: each API has a different request body shape so each method needs a different implementation.
+        ...
 
-    @abstractmethod 
+    @abstractmethod
     def _format(self, response):
         # To be inherited: each API returns a different JSON shape so each method needs a different implementation.
+        ...
 
 class TavilyProvider(SearchQuery):
     def __init__(self, api_key):
@@ -41,6 +43,13 @@ class TavilyProvider(SearchQuery):
     
     def _format(self, response):
         print("This is your query: ", response)
+        # investigate json shape
+
+# -- instantiate providers here -- 
+
+load_dotenv()
+
+tavily = TavilyProvider(api_key=os.getenv("FILLER_KEY"))
 
 # -- tools format for Jarvis to look at --
 
@@ -64,7 +73,7 @@ SEARCH_TOOLS = [
 # -- function defs here -- 
 
 def search_for_info(query):
-    return "HERE IS YOUR QUERY: " + query
+    return tavily.search(query)
 
 search_dispatch = {
     "web_search": search_for_info
