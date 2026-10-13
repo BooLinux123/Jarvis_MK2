@@ -3,7 +3,7 @@ from tools.registry import ALL_TOOLS, DISPATCH_TABLE
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "Jarvis"
-MAX_TOOL_ROUNDS = 1
+MAX_TOOL_ROUNDS = 5
 
 conversation_history = []
 
