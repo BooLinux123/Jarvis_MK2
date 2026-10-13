@@ -8,6 +8,8 @@ from abc import ABC, abstractmethod
 import requests
 import json
 from dotenv import load_dotenv
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # Because this search query is likely the one I will expand upon the most (general info, weather, news, etc.), I want to abstract it so I only have to implement
 # the logic for a search and formatting flow. Every subclass of this class will just serve
@@ -31,6 +33,33 @@ class SearchQuery(ABC):
         # To be inherited: each API returns a different JSON shape so each method needs a different implementation.
         ...
 
+# originally implemented just in the weather search function, I realized open meteo also give you a timezone which is helpful for searching up the time
+def geocode(location_name):
+    if location_name == "" or location_name == None:
+            location_name = "Boston"
+
+    # get coordinates based on locations name
+    try:
+        location_data = requests.get("https://geocoding-api.open-meteo.com/v1/search", params={
+            "name": location_name,
+            "count": 1
+        }, timeout=10).json()
+    except requests.exceptions.JSONDecodeError:
+        raise ValueError("Geocoding API returned a non-JSON response")
+
+    if not isinstance(location_data, dict) or not location_data.get("results"):
+        raise ValueError(f"Could not find any results for '{location_name}'")
+    
+    return location_data
+
+# -- for telling the time/searching the time -- 
+class Clock:
+    def now(self, timezone_name):
+        try: 
+            return datetime.now(ZoneInfo(timezone_name)).strftime("%I:%M %p")
+        except KeyError:
+            raise ValueError("Could not find timezone")
+
 # -- general web search using tavily --
 class TavilyProvider(SearchQuery):
     def __init__(self, api_key):
@@ -53,8 +82,8 @@ class TavilyProvider(SearchQuery):
 
 # -- specific weather data using open-matteo -- 
 class WeatherProvider(SearchQuery):
-    def __init__(self):
-        pass
+    def __init__(self, clock):
+        self.clock = clock
 
     WMO_WEATHER_CODES = weathercodeTable = {
                 0: "clear sky",
@@ -91,35 +120,26 @@ class WeatherProvider(SearchQuery):
     # Flow: user inputs location: "What will the weather in X be like today/next week" -> Jarvis calls tool and seaches for the coords of the location -> pass the
     # coords of the best match to the actual weather endpoint -> return response
     def _execute(self, location_name):
-        if location_name == "" or location_name == None:
-            location_name = "Boston"
+        weather_api_data = geocode(location_name)
 
-        # step one: get coords
-        try:
-            coordinates = requests.get("https://geocoding-api.open-meteo.com/v1/search", params={
-                "name": location_name,
-                "count": 1
-            }, timeout=10).json()
-        except requests.exceptions.JSONDecodeError:
-            raise ValueError("Geocoding API returned a non-JSON response")
-
-        if not isinstance(coordinates, dict) or not coordinates.get("results"):
-            raise ValueError(f"Could not find any results for '{location_name}'")
-        
-        match = coordinates["results"][0]
+        match = weather_api_data["results"][0]
         latitude = match["latitude"]
         longitude = match["longitude"]
+        timezone = match["timezone"]
+
         place = ", ".join(filter(None, [match["name"], match.get("admin1"), match.get("country")]))
 
         # step two: retrieve data based on coords
         try:
             weather_details = requests.get("https://api.open-meteo.com/v1/forecast", params={
-                "latitude": latitude, "longitude": longitude, "current_weather": True, "forecast_days": 7, "temperature_unit": "fahrenheit"
+                "latitude": latitude, "longitude": longitude, "current_weather": True, "forecast_days": 7, 
+                "temperature_unit": "fahrenheit", "timezone": "auto", "windspeed_unit": "mph"
             }, timeout=10).json()
         except requests.exceptions.JSONDecodeError:
             raise ValueError("Weather results returned a non-JSON response")
 
         weather_details["place"] = place
+        weather_details["timezone"] = timezone
 
         return weather_details
 
@@ -131,22 +151,27 @@ class WeatherProvider(SearchQuery):
         relevant_keys = ["temperature", "windspeed", "winddirection"]
         formattedResponse = [f"{key}: {values[key]}{units.get(key, '')}" for key in relevant_keys]
 
+        # get the current time that the query was executed
+        formattedResponse.insert(0, f"Current time: {self.clock.now(response['timezone'])}")
+
         # add country in case two towns are named the same
-        formattedResponse.insert(0, f"location: {response['place']}")
+        formattedResponse.append(f"location: {response['place']}")
 
         # add result of the weathercode to indicate conditions
         formattedResponse.append("current weather conditions: " + self.WMO_WEATHER_CODES[values["weathercode"]])
 
-        print(formattedResponse)
+        #print(formattedResponse)
 
         return ", ".join(formattedResponse)
 
 # -- instantiate providers here -- 
 
+clock = Clock()
+
 load_dotenv()
 
 tavily = TavilyProvider(api_key=os.getenv("FILLER_KEY"))
-weather = WeatherProvider()
+weather = WeatherProvider(clock)
 
 # -- tools format for Jarvis to look at --
 
@@ -170,10 +195,24 @@ SEARCH_TOOLS = [
         "type": "function",
         "function": {
             "name": "weather_search",
-            "description": ("Get current weather conditions (temperature, wind, forecast) from a specified city or location. Only use this when a user wants to "
+            "description": ("Get current weather conditions (temperature, wind, forecast) from a specified city or location as well as the time. Only use this when a user wants to know the weather for a location and be sure to mention what time it is."
             "know the current weather conditions or forecast at a place. If none is given, default to Boston"),
             "parameters": {
                 "type": "object",
+                "properties": {
+                    "location_name": {"type": "string", "description": "The name of a town or city"}
+                },
+                "required": ["location_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_time",
+            "description": "Get the current time for a specified location.",
+            "parameters": {
+                "type": "objects",
                 "properties": {
                     "location_name": {"type": "string", "description": "The name of a town or city"}
                 },
@@ -191,7 +230,11 @@ def search_for_info(query):
 def search_for_weather(location_name):
     return weather.search(location_name)
 
+def get_time(location_name):
+    return clock.now(geocode(location_name)["results"][0]["timezone"])
+
 search_dispatch = {
     "web_search": search_for_info,
-    "weather_search": search_for_weather
+    "weather_search": search_for_weather,
+    "get_time": get_time
 }
