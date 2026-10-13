@@ -105,31 +105,39 @@ class WeatherProvider(SearchQuery):
 
         if not isinstance(coordinates, dict) or not coordinates.get("results"):
             raise ValueError(f"Could not find any results for '{location_name}'")
-
-        latitude = coordinates["results"][0]["latitude"]
-        longitude = coordinates["results"][0]["longitude"]
+        
+        match = coordinates["results"][0]
+        latitude = match["latitude"]
+        longitude = match["longitude"]
+        place = ", ".join(filter(None, [match["name"], match.get("admin1"), match.get("country")]))
 
         # step two: retrieve data based on coords
         try:
             weather_details = requests.get("https://api.open-meteo.com/v1/forecast", params={
-                "latitude": latitude, "longitude": longitude, "current_weather": True, "forecast_days": 7
+                "latitude": latitude, "longitude": longitude, "current_weather": True, "forecast_days": 7, "temperature_unit": "fahrenheit"
             }, timeout=10).json()
         except requests.exceptions.JSONDecodeError:
             raise ValueError("Weather results returned a non-JSON response")
+
+        weather_details["place"] = place
 
         return weather_details
 
     # parse API json response from open-meteo
     def _format(self, response):
         values = response['current_weather']
-        print(values)
         units = response['current_weather_units']
 
         relevant_keys = ["temperature", "windspeed", "winddirection"]
         formattedResponse = [f"{key}: {values[key]}{units.get(key, '')}" for key in relevant_keys]
 
+        # add country in case two towns are named the same
+        formattedResponse.insert(0, f"location: {response['place']}")
+
         # add result of the weathercode to indicate conditions
         formattedResponse.append("current weather conditions: " + self.WMO_WEATHER_CODES[values["weathercode"]])
+
+        print(formattedResponse)
 
         return ", ".join(formattedResponse)
 
