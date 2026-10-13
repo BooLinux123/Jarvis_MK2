@@ -3,12 +3,12 @@ from tools.registry import ALL_TOOLS, DISPATCH_TABLE
 
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "Jarvis"
+MAX_TOOL_ROUNDS = 1
 
 conversation_history = []
 
-def chat(user_message):
-    conversation_history.append({"role":"user", "content":user_message})
-
+# this method uses the actual api - it's seperated because not every chat needs a new message
+def send_to_ollama():
     response = requests.post(OLLAMA_URL, json = {
         "model": MODEL_NAME,
         "messages": conversation_history,
@@ -18,16 +18,21 @@ def chat(user_message):
     })
 
     data = response.json()
-
     conversation_history.append(data["message"])
-
     return data
 
-def handle_response(data):
+def chat(user_message):
+    conversation_history.append({"role": "user", "content": user_message})
+    return send_to_ollama()
+
+def handle_response(data, depth=0):
     print("DATA RECEIVED: ", data)
     message = data["message"]
 
     if "tool_calls" in message and message["tool_calls"]:
+        if depth >= MAX_TOOL_ROUNDS:
+            print(f"Jarvis hit the tool-call limit ({MAX_TOOL_ROUNDS}) - stopping.")
+            return
         for call in message["tool_calls"]:
             name = call["function"]["name"]
             args = call["function"]["arguments"]
@@ -38,6 +43,8 @@ def handle_response(data):
                     "role":"tool",
                     "content": str(result) if result is not None else " done"
                 })
+                follow_up_data = send_to_ollama()
+                handle_response(follow_up_data, depth + 1)
             else:
                 conversation_history.append({
                     "role": "tool",
