@@ -42,7 +42,7 @@ def geocode(location_name):
     try:
         location_data = requests.get("https://geocoding-api.open-meteo.com/v1/search", params={
             "name": location_name,
-            "count": 1
+            "count": 3
         }, timeout=10).json()
     except requests.exceptions.JSONDecodeError:
         raise ValueError("Geocoding API returned a non-JSON response")
@@ -135,6 +135,7 @@ class WeatherProvider(SearchQuery):
                 "latitude": latitude, "longitude": longitude, "current_weather": True, "forecast_days": 7, 
                 "temperature_unit": "fahrenheit", "timezone": "auto", "windspeed_unit": "mph"
             }, timeout=10).json()
+            print("API HIT!!!")
         except requests.exceptions.JSONDecodeError:
             raise ValueError("Weather results returned a non-JSON response")
 
@@ -195,7 +196,7 @@ SEARCH_TOOLS = [
         "type": "function",
         "function": {
             "name": "weather_search",
-            "description": ("Get current weather conditions (temperature, wind, forecast) from a specified city or location as well as the time. Only use this when a user wants to know the weather for a location and be sure to mention what time it is."
+            "description": ("Get current weather conditions (temperature, wind, forecast) from a specified city or location as well as the time. Only use this when a user wants to know the weather for a location and be sure to mention what time it is. Of the multiple results returned, if one is not obvious or they are very similar, ask which one is the right location."
             "know the current weather conditions or forecast at a place. If none is given, default to Boston"),
             "parameters": {
                 "type": "object",
@@ -214,7 +215,7 @@ SEARCH_TOOLS = [
             "parameters": {
                 "type": "objects",
                 "properties": {
-                    "location_name": {"type": "string", "description": "The name of a town or city"}
+                    "location_name": {"type": "string", "description": "The location to get weather for. Use one of two forms: (1) just a settlement name, e.g. 'Boston', when there's no ambiguity or the user didn't specify a region. (2) a settlement name followed by a comma and the state, province, or region, e.g. 'Portland, Maine', when the user specifies one OR when the place name is commonly ambiguous (e.g. Portland, Springfield, Columbus, Charlotte). Always use the comma form in these ambiguous cases even if the user didn't explicitly say the state, by asking them to clarify first if needed."}
                 },
                 "required": ["location_name"]
             }

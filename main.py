@@ -25,14 +25,12 @@ def chat(user_message):
     conversation_history.append({"role": "user", "content": user_message})
     return send_to_ollama()
 
-def handle_response(data, depth=0):
-    print("DATA RECEIVED: ", data)
+def handle_response(data):
+    #print("DATA RECEIVED: ", data["message"])
+    #print("\n")
     message = data["message"]
 
     if "tool_calls" in message and message["tool_calls"]:
-        if depth >= MAX_TOOL_ROUNDS:
-            print(f"Jarvis hit the tool-call limit ({MAX_TOOL_ROUNDS}) - stopping.")
-            return
         for call in message["tool_calls"]:
             name = call["function"]["name"]
             args = call["function"]["arguments"]
@@ -40,17 +38,16 @@ def handle_response(data, depth=0):
             if function:
                 result = function(**args)
                 conversation_history.append({
-                    "role":"tool",
+                    "role": "tool",
                     "content": str(result) if result is not None else " done"
                 })
-                follow_up_data = send_to_ollama()
-                handle_response(follow_up_data, depth + 1)
             else:
                 conversation_history.append({
                     "role": "tool",
                     "content": f"Error: '{name}' is not a valid tool"
                 })
                 print("The model tried to use an unknown tool: ", name)
+        handle_response(send_to_ollama())
     else:
         print("Jarvis:", message["content"])
 
