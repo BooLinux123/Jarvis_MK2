@@ -6,7 +6,6 @@ import os
 import requests
 from abc import ABC, abstractmethod
 import requests
-import json
 from dotenv import load_dotenv
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -66,18 +65,17 @@ class TavilyProvider(SearchQuery):
         self.api_key = api_key
 
     def _execute(self, query):
-        """
+        print("TAVILY API HIT!!!")
         requests.post("https://api.tavily.com/search", json={
             "api_key": self.api_key,
             "query": query,
             "max_results": 3 
         })
-        """
         return query
         # look up how tavily client works with requests
     
     def _format(self, json):
-        print("This is your query: ", json)
+        print("This is your query:", json)
         # investigate json shape
 
 # -- specific weather data using open-matteo -- 
@@ -135,7 +133,6 @@ class WeatherProvider(SearchQuery):
                 "latitude": latitude, "longitude": longitude, "current_weather": True, "forecast_days": 7, 
                 "temperature_unit": "fahrenheit", "timezone": "auto", "windspeed_unit": "mph"
             }, timeout=10).json()
-            print("API HIT!!!")
         except requests.exceptions.JSONDecodeError:
             raise ValueError("Weather results returned a non-JSON response")
 
@@ -171,7 +168,7 @@ clock = Clock()
 
 load_dotenv()
 
-tavily = TavilyProvider(api_key=os.getenv("FILLER_KEY"))
+tavily = TavilyProvider(api_key=os.getenv("TAVILY_API_KEY"))
 weather = WeatherProvider(clock)
 
 # -- tools format for Jarvis to look at --
@@ -181,7 +178,7 @@ SEARCH_TOOLS = [
         "type": "function",
         "function": {
             "name": "web_search",
-            "description": ("Search for the internet for current or real-time information not in your training data (recent facts, current events, contemporary figures, trends)."
+            "description": ("Search the internet for current or real-time information not in your training data (recent facts, current events, contemporary figures, trends). Treat this as the default tool to use when asked an information-related question you cannot answer due to not having the proper tools, or if there is a chance you do have the information from your traing data, but it is outdated ."
             "Use this for general questions not fully covered by your training data"),
             "parameters": {
                 "type": "object",
