@@ -1,0 +1,38 @@
+{
+  "main.py": {
+    "mtime": 1794804615.012142,
+    "seen": 1794809545.171254,
+    "ast_hash": "96415abfc6fdcb75b79247d59a40b9af",
+    "semantic_hash": "96415abfc6fdcb75b79247d59a40b9af"
+  },
+  "tools/lights.py": {
+    "mtime": 1794291491.046555,
+    "seen": 1794809545.171257,
+    "ast_hash": "bd899c1c979a6b8838d75495b9c1da8a",
+    "semantic_hash": "bd899c1c979a6b8838d75495b9c1da8a"
+  },
+  "tools/registry.py": {
+    "mtime": 1794291491.0466385,
+    "seen": 1794809545.1712582,
+    "ast_hash": "b88a77167de47c57ac6a0c3a627e7743",
+    "semantic_hash": "b88a77167de47c57ac6a0c3a627e7743"
+  },
+  "tools/search.py": {
+    "mtime": 1794801429.172766,
+    "seen": 1794809545.171259,
+    "ast_hash": "90c8a8362171a20a100b86706c52f19f",
+    "semantic_hash": "90c8a8362171a20a100b86706c52f19f"
+  },
+  "Modelfile.txt": {
+    "mtime": 1794805720.9269152,
+    "seen": 1794809545.1712599,
+    "ast_hash": "7eb77af22785d425a70c960d92606595",
+    "semantic_hash": "7eb77af22785d425a70c960d92606595"
+  },
+  "requirements.txt": {
+    "mtime": 1794778766.3461459,
+    "seen": 1794809545.1712608,
+    "ast_hash": "addd61678ec0491e56b35473ecaafcf7",
+    "semantic_hash": "addd61678ec0491e56b35473ecaafcf7"
+  }
+}
