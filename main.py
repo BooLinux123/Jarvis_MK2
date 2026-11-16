@@ -4,11 +4,23 @@ from tools.registry import ALL_TOOLS, DISPATCH_TABLE
 OLLAMA_URL = "http://localhost:11434/api/chat"
 MODEL_NAME = "Jarvis"
 MAX_TOOL_ROUNDS = 5
+# how many of the most recent user turns to keep in context
+MAX_HISTORY_TURNS = 8
 
 conversation_history = []
 
+# Keep the context window from overflowing. We only ever cut at a "user" message so that
+# an assistant tool_call never gets separated from its matching tool result - splitting
+# that pair makes the API reject the history.
+def trim_history():
+    user_turns = [i for i, m in enumerate(conversation_history) if m.get("role") == "user"]
+    if len(user_turns) > MAX_HISTORY_TURNS:
+        del conversation_history[:user_turns[-MAX_HISTORY_TURNS]]
+
 # this method uses the actual api - it's seperated because not every chat needs a new message
 def send_to_ollama():
+    trim_history()
+
     response = requests.post(OLLAMA_URL, json = {
         "model": MODEL_NAME,
         "messages": conversation_history,

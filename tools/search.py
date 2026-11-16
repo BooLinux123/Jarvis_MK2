@@ -65,18 +65,28 @@ class TavilyProvider(SearchQuery):
         self.api_key = api_key
 
     def _execute(self, query):
-        print("TAVILY API HIT!!!")
-        requests.post("https://api.tavily.com/search", json={
-            "api_key": self.api_key,
-            "query": query,
-            "max_results": 3 
-        })
-        return query
-        # look up how tavily client works with requests
+        response = requests.post("https://api.tavily.com/search",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "query": query,
+                "max_results": 3,
+                "search_depth": "basic",
+                "include_answer": True
+            }, timeout=10)
+
+        # for catching specific errors like 401, 403, 404, etc. and returning a more specific error message
+        response.raise_for_status()
+
+        try:
+            return response.json()
+        except requests.exceptions.JSONDecodeError:
+            raise ValueError("Tavily returned a non-JSON response")
     
-    def _format(self, json):
-        print("This is your query:", json)
-        # investigate json shape
+    def _format(self, response):
+        answer = response['answer']
+        print("Tavily answer:\n", answer)
+        return answer
+
 
 # -- specific weather data using open-matteo -- 
 class WeatherProvider(SearchQuery):
@@ -210,7 +220,7 @@ SEARCH_TOOLS = [
             "name": "get_time",
             "description": "Get the current time for a specified location.",
             "parameters": {
-                "type": "objects",
+                "type": "object",
                 "properties": {
                     "location_name": {"type": "string", "description": "The location to get weather for. Use one of two forms: (1) just a settlement name, e.g. 'Boston', when there's no ambiguity or the user didn't specify a region. (2) a settlement name followed by a comma and the state, province, or region, e.g. 'Portland, Maine', when the user specifies one OR when the place name is commonly ambiguous (e.g. Portland, Springfield, Columbus, Charlotte). Always use the comma form in these ambiguous cases even if the user didn't explicitly say the state, by asking them to clarify first if needed."}
                 },
